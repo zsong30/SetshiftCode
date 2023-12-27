@@ -15,3 +15,7 @@ figure,plot(spikephases_dist)
 
 figure,imagesc(1:10,1:7,spikephases_dist)
 colorbar
+
+
+
+figure,polarhistogram(csf02spikefieldcoupling.unit(1).frequency(6).spikephases(1:5000),25);
