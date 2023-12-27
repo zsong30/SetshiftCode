@@ -1,0 +1,553 @@
+function [correct_DM_table,correct_LN_table,incorrect_DM_table,incorrect_LN_table] = do_NP_units_50_ms_predictionmodel_csf02;
+% function plot_NP_setshiftbehav_unitspiking_correctIncor_NPmanu is to produce 3 sets of figures for the NP manuscript.
+% One set shows spiking rate of all correct-prone units during correct vs incorrect trials
+% one set shows spiking rate of all incorrect-prone units during correct vs incorrect trials
+% one set shows spiking rate of all units during correct vs incorrect trials.
+
+% r = 1, reg = 2, dy = 2, is currently used to produce figures for the manuscript. 
+
+% Author: Eric Song,
+% Date: Mar.20. 2023
+
+% ratname = 'CSF02';
+% datadate = '09242021';
+% regionname = 'PL';
+
+
+% load('z:\projmon\ericsprojects\Setshift\DATA\PredictionModel\CSF02_lfp_predictionmodel_09242023.mat','lfpdata')
+load('z:\projmon\ericsprojects\Setshift\DATA\PredictionModel\CSF02_lfp_predictionmodel_09242023.mat','lfpdata');
+
+
+
+for rt = 1:1  % we can't do rt =2 yet as of now because the spike files did not include the entire recording time
+
+    if rt == 1
+        data(1).path = ...
+            'Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF02\2021-09-22_09-53-40\Record Node 102\experiment1\recording1\structure.oebin';
+        data(1).unitfilepath = ...
+            'Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF02\2021-09-22_09-53-40\CSF02SpikesFrom1stProbe_09222021_trimmed.mat';
+%       data(1).unitfilepath2 = ...
+%             '';
+        data(1).logfn = 'Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF02\2021-09-22_09-53-40\CSF03_2021_09_22__14_40_00.csv';
+
+        data(2).path = ...
+            'Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF02\2021-09-23_14-50-18\Record Node 101\experiment1\recording1\structure.oebin';
+        data(2).unitfilepath = ...
+            "Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF02\2021-09-23_14-50-18\CSF02SpikesFrom1stProbe_09232021_trimmed";
+        data(2).unitfilepath2 = ...
+            'E:\SetShift\EPHYSDATA\NP\CSF02\2021-09-23_14-50-18\SpikesFrom2ndProbe_09232021';
+        data(2).logfn = ...
+            'Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF02\2021-09-23_14-50-18\CSF02_2021_09_23__14_50_02';
+        data(2).ratname = 'CSF02';
+        data(2).datadate = '09232021';
+        
+        data(3).unitfilepath = ...
+            'Z:\projmon\ericsprojects\NP_manuscript\Data\SpikeyieldsData\trimmedData\CSF02SpikesFrom1stProbe_09242021_trimmed';
+        data(3).unitfilepath2 = ...
+            'Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF02\2021-09-24_15-17-10\CSF02SpikesFrom2ndProbe_09242021';
+        data(3).path = ...
+            'Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF02\2021-09-24_15-17-10\Record Node 101\experiment1\recording1\structure.oebin';
+        data(3).logfn = 'Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF02\2021-09-24_15-17-10\CSF02_2021_09_24__15_17_02.csv';
+
+
+    elseif rt == 2  % we can't do rt =2 yet as of now because the spike files did not include the entire recording time
+
+        data(1).path = ...
+            'E:\SetShift\EPHYSDATA\NP\CSF03\CSF03_2022-03-29_14-52-47\Record Node 102\experiment1\recording1\structure.oebin';
+
+        data(1).logfn = ...
+            'E:\SetShift\EPHYSDATA\NP\CSF03\CSF03_2022-03-29_14-52-47\CSF03PM_2022_03_29__14_52_00';
+
+        % data(2).path = ...
+        %     'E:\SetShift\EPHYSDATA\NP\CSF03\CSF03_2022-03-30_15-02-57\Record Node 102\experiment1\recording1\structure.oebin';
+        % data(2).logfn = ...
+        %     'E:\SetShift\EPHYSDATA\NP\CSF03\CSF03_2022-03-30_15-02-57\CSF03_2022_03_30__15_03_00';
+        % 
+        data(3).path = ...
+            'E:\SetShift\EPHYSDATA\NP\CSF03\CSF03_2022-03-31_14-46-54\Record Node 102\experiment1\recording1\structure.oebin';
+                data(3).unitfilepath = ...
+            'Z:\projmon\ericsprojects\Setshift\EPHYSDATA\NP\CSF03\CSF03_2022-03-31_14-46-54\CSF03SpikesFrom1stProbe_03312022';
+        data(3).logfn = ...
+            'E:\SetShift\EPHYSDATA\NP\CSF03\CSF03_2022-03-31_14-46-54\CSF03_2022_03_31__14_47_00';
+
+    end
+
+
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%         data from recording in the SetShift chamber                 %%%%%
+    %%%          averaging across every 10 channels as a cluster             %%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+    for reg = 1:1
+
+
+        for dy = 3:3
+
+            if rt == 1
+                if reg == 1
+                    %figpath = 'Z:\projmon\ericsprojects\Setshift\ANALYSES\representative analyses\unit-behavior-correlation\CSF02_PL\CSF02_PL_09222021';
+                    RawData = load_open_ephys_binary(data(dy).path, 'continuous',1,'mmap');
+                    RawData_evt = load_open_ephys_binary(data(dy).path, 'events',1);
+                    load(data(dy).unitfilepath,'trial')
+                    x = lfpdata.prelimbic.correctsampleinfo(:,1)+1;
+                    y = lfpdata.prelimbic.incorrectsampleinfo(:,1)+1;
+                elseif reg == 2
+                    %figpath = 'Z:\projmon\ericsprojects\Setshift\ANALYSES\representative analyses\unit-behavior-correlation\CSF02_ST';
+                    RawData = load_open_ephys_binary(data(dy).path, 'continuous',3,'mmap');
+                    RawData_evt = load_open_ephys_binary(data(dy).path, 'events',1);
+                    load(data(dy).unitfilepath2,'trial')
+                    %RawData = load_open_ephys_binary(data(dy).path, 'continuous',4,'mmap');
+                    x = lfpdata.striatum.correctsampleinfo(:,1)+1;
+                    y = lfpdata.striatum.incorrectsampleinfo(:,1)+1;
+                end
+
+            elseif rt == 2
+                if reg == 1
+                    %figpath = '\\rds01.storage.umn.edu\hst_widge\projmon\ericsprojects\Setshift\ANALYSES\NP spike analyses\CSF03_PL';
+                    %RawData = load_open_ephys_binary(data(dy).path, 'continuous',2,'mmap');
+                elseif reg == 2
+                    %figpath = 'Z:\projmon\ericsprojects\NP_manuscript\Analysis\CSF03_ST';
+                    %RawData = load_open_ephys_binary(data(dy).path, 'continuous',4,'mmap');
+                end
+
+
+            end
+
+        %unitdata = trial;
+recordstarttime = RawData.Timestamps(1);
+setshiftstarttime = RawData_evt.Timestamps(1); 
+offsettime = double((setshiftstarttime - recordstarttime)/30);   % in millisec.          
+
+
+% convert spike timestamps to seconds
+for u = 1:length(trial.units)
+    for i = 1:size(trial.units(u).ts,1)
+        trial.units(u).newts(i,1) = double((trial.units(u).ts(i,1) + offsettime)/1000);
+    end
+end
+
+            % behavioral timestamps
+            setshift=read_set_shift_behavior_one_file_only_imcomplete_session(data(dy).logfn);
+            correctDecMT = [];incorrectDecMT = []; correctFeedBackT = []; incorrectFeedBackT = [];
+            for rl=1:length(setshift.rules)
+                for bl=1:length(setshift.rules(rl).blocks)
+                    for tl = 1:length(setshift.rules(rl).blocks(bl).trials)
+                        if setshift.rules(rl).blocks(bl).trials(tl).performance == 1 && ismember(round(setshift.rules(rl).blocks(bl).trials(tl).response_time),round(x))
+correctDecMT = [correctDecMT;setshift.rules(rl).blocks(bl).trials(tl).initiation_time,setshift.rules(rl).blocks(bl).trials(tl).response_time];
+correctFeedBackT = [correctFeedBackT;setshift.rules(rl).blocks(bl).trials(tl).response_time,setshift.rules(rl).blocks(bl).trials(tl).response_time+1];
+                        elseif setshift.rules(rl).blocks(bl).trials(tl).performance == 0 && ismember(round(setshift.rules(rl).blocks(bl).trials(tl).response_time),round(y))
+                            incorrectDecMT = [incorrectDecMT;setshift.rules(rl).blocks(bl).trials(tl).initiation_time,setshift.rules(rl).blocks(bl).trials(tl).response_time];
+                            incorrectFeedBackT = [incorrectFeedBackT; setshift.rules(rl).blocks(bl).trials(tl).response_time, setshift.rules(rl).blocks(bl).trials(tl).response_time+1];
+
+                        end
+                    end
+                end
+            end
+
+            correctT = sortrows(correctDecMT,1); % correct trial initiation and response timestamps (timestamp x init/resp)
+            incorrectT = sortrows(incorrectDecMT,1); % incorrect trial initiation and response timestamps (timestamp x init/resp)
+
+
+%%%%%%%%%%%%%%%%%%%% correct DM %%%%%%%%%%%%%%%%%%%%%
+
+% creating correct DM bins
+    correct_DM_bins = struct; % initialize correct DM bins struct
+    % for i = 1:size(correctT,1) % loop through correct trial start times
+    for i = 1:5
+        tl = floor(((correctT(i,2) - correctT(i,1))*1000)/50); % number of 50 ms bins in given trial
+        x = 0.000; % counter 
+        for j = 1:tl % loop through number of bins in each trial
+            correct_DM_bins.trial(i).bins(j) = correctT(i,1) + x; % record start time of each bin
+            x = x + 0.05; % counter
+        end
+    end
+
+% initialize correct DM struct
+correct_DM_spikes = struct; % initialize struct
+for i = 1:length(trial.units) % loop through all units
+    % for j = 1:length(correct_DM_bins.trial) % loop through all trials for a unit
+    for j = 1:5
+        for k = 1:length(correct_DM_bins.trial(j).bins) % loop through all bins in a trial
+        correct_DM_spikes.unit(i).trial(j).bins(k) = zeros(1:length(correct_DM_bins.trial(j).bins(k))); % initialize number of bins for each trial for each unit
+        end
+    end
+end
+
+% add correct DM spike data to spike structure
+for h = 1:length(trial.units) %loop through all units 
+    for i = 1:length(trial.units(h).newts) %loop through all spike timestamps for a single unit
+        % for j = 1:length(correct_DM_bins.trial) %loop through all trials
+        for j = 1:5
+            for k = 1:length(correct_DM_bins.trial(j).bins) %loop through all bins in a trial
+                if trial.units(h).newts(i) >= correct_DM_bins.trial(j).bins(k) && trial.units(h).newts(i) <= correct_DM_bins.trial(j).bins(k)+0.05 % if a spike falls within the current bin
+                    correct_DM_spikes.unit(h).trial(j).bins(k) = correct_DM_spikes.unit(h).trial(j).bins(k) + 1; % if yes then add 1 to the spike count for that bin
+                end
+            end
+        end
+    end
+end
+
+% padding correct DM trials to 1s
+for u = 1:length(trial.units) % loop through all units
+    % for i = 1:size(correctT,1) % loop through all trial start times
+    for i = 1:5
+        if length(correct_DM_bins.trial(i).bins) < 20 % if a trial is less than 1 second
+            diff = 20 - length(correct_DM_bins.trial(i).bins); % find number of bins needed to pad given trial to 1 second
+            nans = nan(1,diff); % create nans vector that will be used to pad trial
+            correct_DM_spikes.unit(u).trial(i).bins = horzcat(correct_DM_spikes.unit(u).trial(i).bins, nans); % pad trials to 1 second for all units
+        end
+    end
+end
+
+% creating correct DM table
+correct_DM_table = []; % intitialize correct DM table
+% for i = 1:length(correctT,1) % loop through all trials
+for i = 1:5
+    all_units = []; % initialize vertical table
+    for u = 1:144 % loop through all units
+        all_units = horzcat(all_units,correct_DM_spikes.unit(u).trial(i).bins'); % change each trial from row vector to column vector for all units
+    end
+    correct_DM_table = vertcat(correct_DM_table,all_units); % stack all trials. Table is trial bin (50 ms) x unit
+end
+
+%%%%%%%%%%%%%%%%%%%% correct LN %%%%%%%%%%%%%%%%%%%%%
+
+% creating correct LN bins 
+correct_LN_bins = struct; % initialize correct LN bins struct
+% for i = 1:size(correctT,1) % loop through all correct trial start times
+for i = 1:5
+    tl = 20; % number of 50 ms bins in each trial
+    x = 0.000; % counter 
+    for j = 1:tl % loop through all bins in a given trial
+        correct_LN_bins.trial(i).bins(j) = correctT(i,2) + x; % record start time of each bin
+        x = x + 0.05; % increase counter                   
+    end
+end
+
+% initialize correct LN spike structure struct;
+correct_LN_spikes = struct; % initialize correct LN spikes struct
+for i = 1:length(trial.units) % loop through all units
+    % for j = 1:length(correct_LN_bins.trial) % loop through all trials within a unit
+    for j = 1:5
+        for k = 1:length(correct_LN_bins.trial(j).bins) % loop through all bins within a trial
+            correct_LN_spikes.unit(i).trial(j).bins(k) = zeros(1:length(correct_LN_bins.trial(j).bins(k))); % set number of bins for each trial across all units
+        end
+    end
+end
+
+% add correct LN spike data to spike structure
+for h = 1:length(trial.units) %loop through all units
+    for i = 1:length(trial.units(h).newts) %loop through all spike timestamps for a given unit
+        % for j = 1:length(correct_LN_bins.trial) %loop through all trials
+        for j = 1:5
+            for k = 1:length(correct_LN_bins.trial(j).bins) %loop through all bins in a given trial
+                if trial.units(h).newts(i) >= correct_LN_bins.trial(j).bins(k) && trial.units(h).newts(i) <= correct_LN_bins.trial(j).bins(k)+0.05 % if a spike falls within the current bin
+                    correct_LN_spikes.unit(h).trial(j).bins(k) = correct_LN_spikes.unit(h).trial(j).bins(k) + 1; % if yes then add 1 to the spike count for that bin
+                end
+            end
+        end
+    end
+end
+
+% matching correct LN trial length with correct DM trial length
+for u = 1:144 % loop through all units
+    % for i = 1:size(correctT,1) % loop through all trials
+    for i = 1:5
+        if length(correct_LN_spikes.unit(u).trial(i).bins) < length(correct_spikes_DM.unit(u).trial(i).bins) % if a DM trial is longer than the corresponding LN trial (if a DM trial is longer than 1 second)
+            diff = length(correct_spikes_DM.unit(u).trial(i).bins) - length(correct_LN_spikes.unit(u).trial(i).bins); % find number of bins needed to match LN trials with DM trials
+            nans = nan(1,diff); % create nans vector that will be used to pad trial
+            correct_LN_spikes.unit(u).trial(i).bins = horzcat(correct_LN_spikes.unit(u).trial(i).bins, nans); % pad LN trial bins to match DM 
+        end
+    end
+end
+
+% creating correct LN table
+correct_LN_table = []; % initialize correct LN table
+% for i = 1:length(correctT,1) % loop through all trials
+for i = 1:5
+    all_units = []; % initialize vertical table
+    for u = 1:144 % loop through all units
+        all_units = horzcat(all_units,correct_LN_spikes.unit(u).trial(i).bins'); % change each trial from row vector to column vector for all units
+    end
+    correct_LN_table = vertcat(correct_LN_table,all_units); % stack all trials. Table is trial bin (50 ms) x unit
+end
+
+
+%%%%%%%%%%%%%%%%%%%% incorrect DM %%%%%%%%%%%%%%%%%%%%%
+
+% creating incorrect DM bins
+incorrect_DM_bins = struct; % initialize incorrect DM bins struct
+for i = 1:size(incorrectT,1) % loop through all trial start times
+    tl = floor(((incorrectT(i,2) - incorrectT(i,1))*1000)/50); % number of 50 ms bins in each trial
+    x = 0.000; % counter 
+    for j = 1:tl % loop through number of bins for a given trial
+        incorrect_DM_bins.trial(i).bins(j) = incorrectT(i,1) + x; % record start time of each bin
+        x = x + 0.05; % increase counter
+    end
+end
+
+% initialize incorrect DM spikes struct
+incorrect_DM_spikes = struct; % initialize incorect DM spikes struct
+for i = 1:length(trial.units) % loop through all units
+    for j = 1:length(incorrect_DM_bins.trial) % loop through all trials
+        for k = 1:length(incorrect_DM_bins.trial(j).bins) % loop through all bins in a given trial
+        incorrect_DM_spikes.unit(i).trial(j).bins(k) = zeros(1:length(incorrect_DM_bins.trial(j).bins(k))); % set number of bins for each trial across all units
+        end
+    end
+end
+
+% add incorrect DM spike data to spike structure
+for h = 1:length(trial.units) %loop through all units 
+    for i = 1:length(trial.units(h).newts) %loop through all spike timestamps for a given unit
+        for j = 1:length(incorrect_DM_bins.trial) %loop through all trials
+            for k = 1:length(incorrect_DM_bins.trial(j).bins) %loop through all bins in a given trial
+                if trial.units(h).newts(i) >= incorrect_DM_bins.trial(j).bins(k) && trial.units(h).newts(i) <= incorrect_DM_bins.trial(j).bins(k)+0.05 % if a spike falls within the current bin   
+                    incorrect_DM_spikes.unit(h).trial(j).bins(k) = incorrect_DM_spikes.unit(h).trial(j).bins(k) + 1; % if yes then add 1 to the spike count for that bin
+                end
+            end
+        end
+    end
+end
+
+% padding incorrect DM trials to 1s
+for u = 1:144 % loop through all units
+    for i = 1:size(incorrectT,1) % loop through all trials
+        if length(incorrect_DM_bins.trial(i).bins) < 20 % if a trial is less than 1 second
+            diff = 20 - length(incorrect_DM_bins.trial(i).bins); % find number of bins needed to pad given trial to 1 second
+            nans = nan(1,diff); % create nans vector that will be used to pad trial
+            incorrect_DM_spikes.unit(u).trial(i).bins = horzcat(incorrect_DM_spikes.unit(u).trial(i).bins, nans); % pad trials to 1 second for all units
+        end
+    end
+end
+
+% creating incorrect DM table
+incorrect_DM_table = []; % intitialize correct DM table
+for i = 1:36 % loop through all trials
+    all_units = []; % initialize vertical table
+    for u = 1:144 % loop through all units
+        all_units = horzcat(all_units,incorrect_DM_spikes.unit(u).trial(i).bins'); % change each trial from row vector to column vector for all units
+    end
+    incorrect_DM_table = vertcat(incorrect_DM_table,all_units); % stack all trials. Table is trial bin (50 ms) x unit
+end
+
+
+%%%%%%%%%%%%%%%%%%%% incorrect LN %%%%%%%%%%%%%%%%%%%%%
+
+% creating incorrect LN bins
+incorrect_LN_bins = struct; % initialize correct LN bins struct
+for i = 1:size(incorrectT,1)
+    tl = 20; % number of 50 ms bins in each trial
+    x = 0.000; % counter 
+    for j = 1:tl % loop through number of bins for a given trial
+        incorrect_LN_bins.trial(i).bins(j) = incorrectT(i,2) + x; % record start time of each bin
+        x = x + 0.05; % increase counter    
+    end
+end
+
+% initialize incorrect LN spike structure;
+incorrect_LN_spikes = struct; % initialize incorect LN spikes struct
+for i = 1:length(trial.units) % loop through all units
+    for j = 1:length(incorrect_LN_bins.trial) % loop through all trials
+        for k = 1:length(incorrect_LN_bins.trial(j).bins) % loop through all bins in a given trial
+        incorrect_LN_spikes.unit(i).trial(j).bins(k) = zeros(1:length(incorrect_LN_bins.trial(j).bins(k))); % set number of bins for each trial across all units
+        end
+    end
+end
+
+% add incorrect LN spike data to spike structure
+for h = 1:length(trial.units) %loop through all units
+    for i = 1:length(trial.units(h).newts) %loop through all spike timestamps for a given unit
+        for j = 1:length(incorrect_LN_bins.trial) %loop through all trials
+            for k = 1:length(incorrect_LN_bins.trial(j).bins) %loop through all bins in a given trial
+                if trial.units(h).newts(i) >= incorrect_LN_bins.trial(j).bins(k) && trial.units(h).newts(i) <= incorrect_LN_bins.trial(j).bins(k)+0.05 % if a spike falls within the current bin
+                    incorrect_LN_spikes.unit(h).trial(j).bins(k) = incorrect_LN_spikes.unit(h).trial(j).bins(k) + 1;  % if yes then add 1 to the spike count for that bin
+                end
+            end
+        end
+    end
+end
+
+% matching incorrect LN trial length with incorrect DM trial length
+for u = 1:144 % loop through all units
+    for i = 1:size(incorrectT,1)
+        if length(incorrect_LN_spikes.unit(u).trial(i).bins) < length(incorrect_DM_spikes.unit(u).trial(i).bins)
+            diff = length(incorrect_DM_spikes.unit(u).trial(i).bins) - length(incorrect_LN_spikes.unit(u).trial(i).bins);
+            nans = nan(1,diff);
+            incorrect_LN_spikes.unit(u).trial(i).bins = horzcat(incorrect_LN_spikes.unit(u).trial(i).bins, nans);
+        end
+    end
+end
+
+% creating incorrect LN table
+incorrect_LN_table = [];
+for i = 1:36
+    all_units = [];
+    for u = 1:144
+        all_units = horzcat(all_units,incorrect_LN_spikes.unit(u).trial(i).bins');
+    end
+    incorrect_LN_table = vertcat(incorrect_LN_table,all_units);
+end
+
+
+%%%%%%%%%%%%% final table %%%%%%%%%%%%%%%%%
+
+% combine correct and incorrect tables
+correct_table = horzcat(correct_DM_table,correct_LN_table);
+incorrect_table = horzcat(incorrect_DM_table,incorrect_LN_table);
+
+% concatenate final table
+final_spikes_table = vertcat(correct_table,incorrect_table);
+
+
+
+
+
+
+
+end % ends the day for loop
+end % ends the region for loop
+
+if reg == 1
+    save(fullfile('z:\projmon\ericsprojects\Setshift\DATA\PredictionModel','CSF02_unit_predictionmodel_correct_DM_PL_09242021'),'correct_DM_table','-v7.3')
+    save(fullfile('z:\projmon\ericsprojects\Setshift\DATA\PredictionModel','CSF02_unit_predictionmodel_correct_LN_PL_09242021'),'correct_LN_table','-v7.3')
+    save(fullfile('z:\projmon\ericsprojects\Setshift\DATA\PredictionModel','CSF02_unit_predictionmodel_incorrect_DM_PL_09242021'),'incorrect_DM_table','-v7.3')
+    save(fullfile('z:\projmon\ericsprojects\Setshift\DATA\PredictionModel','CSF02_unit_predictionmodel_incorrect_LN_PL_09242021'),'incorrect_LN_table','-v7.3')
+    save(fullfile('z:\projmon\ericsprojects\Setshift\DATA\PredictionModel','CSF02_unit_predictionmodel_final_table_PL_09242021'),'final_spikes_table','-v7.3')
+elseif reg == 2
+    save(fullfile('z:\projmon\ericsprojects\Setshift\DATA\PredictionModel','CSF02_unit_predictionmodel_correcttrls_st_bef_09242023'),'spikerate_correct','-v7.3')
+    save(fullfile('z:\projmon\ericsprojects\Setshift\DATA\PredictionModel','CSF02_unit_predictionmodel_incorrecttrls_st_bef_09242023'),'spikerate_incorrect','-v7.3')
+
+end
+
+
+% % perform convolution to find continuous spike rate
+% w = gausswin(2);
+% t_corr = (0:0.001:(((size(corr_trial_spikes,1))/1000)-0.001));
+% t_incorr = (0:0.001:(((size(incorr_trial_spikes,1))/1000)-0.001));
+% 
+% 
+% % plotting spike rate over total trial time
+% figure;
+% plot(t_corr,spikerate_correct(:,1),'color','r');
+% xlabel('Total Length of all Correct Trials (s)');
+% ylabel('Correct Trial Spike Rate - 1 Unit (Hz)');
+% % hold on
+% % plot(corr_trial_spikes(:,1),'color','g');
+% 
+% figure;
+% plot(t_incorr,spikerate_incorrect(:,1),'color','r');
+% xlabel('Total Length of Incorrect Trials (s)');
+% ylabel('Incorrect Trial Spike Rate - 1 Unit (Hz)');
+% 
+% % creating 50 ms bins
+% bs = 50; %bin size (ms)
+% correctT_tl_50ms = [];
+% for i = 1:size(correctT,1)
+%     tl = (((correctT(i,2) - correctT(i,1))*1000)/bs);
+%     x=1;
+%     for j = 1:tl
+%         correctT_tl_50ms(j,i) = x;
+%         x = x+50;
+%     end
+% end  
+% correctT_tl_50ms = correctT_tl_50ms(:);
+% correctT_tl_50ms(correctT_tl_50ms == 0) = [];
+% correctT_tl_50ms = correctT_tl_50ms - 1;
+% correctT_tl_50ms = correctT_tl_50ms/1000; % changes units from ms to s
+% 
+% % spike rate 50 ms average
+% trial_indices = zeros();
+% for i = 1:(length(correctT_tl)-1)
+%     if correctT_tl(i+1)-correctT_tl(i) > 0.001
+%         trial_indices(i) = 1;
+%     else
+%     end
+% end
+% trial_end = find(trial_indices);
+
+
+% hold on
+% plot(incorr_trial_spikes(:,1),'color','g');
+
+% figure;
+% plot(spikerate_correct(:,1),'color','r');
+% hold on
+% plot(sr_corr_same(:,1),'color','b');
+% plot(spikerate_correct(:,1),'color','g');
+
+% % calculate the ratio of correct over incorrect
+% xx = spikerate_correct_aver./spikerate_incorrect_aver;
+% % figure('name',sprintf('day%dregion%d prone task units',dy,reg))
+% ProneCorrectIDs = find(xx>1.5);
+% % singleunitid = find(max(mean(spikerate_correct(:,find(xx>1.5)),1)));
+% % %#ok<FNDSB>+
+% unitCorrectData = spikerate_correct(:,ProneCorrectIDs);
+% unitIncorrectData = spikerate_incorrect(:,ProneCorrectIDs);
+% 
+% fig1 = figure('name',sprintf('%s-%s-%s-prone correct units',ratname,datadate,regionname));
+% set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]); % it will make the figure size to full screen.
+% plot(1:size(unitCorrectData,2),mean(unitCorrectData,1),'LineWidth',3,'Color','r')
+% hold on
+% plot(1:size(unitIncorrectData,2),mean(unitIncorrectData,1),'LineWidth',3,'Color','b')
+% set(gca, 'FontName', 'Arial', 'FontSize', 50, 'FontWeight', 'bold');
+% ylabel('Spike rate','FontSize',70);
+% xlabel('Unit IDs','FontSize',80);
+% xlim([0,size(unitCorrectData,2)+1])
+% 
+%     % SEM_unitCorrectData= std(unitCorrectData,0,1,'omitnan')./sqrt(size(unitCorrectData,1));
+%     % patch([1:size(unitCorrectData,2),fliplr(1:size(unitCorrectData,2))], [(mean(unitCorrectData,1)-SEM_unitCorrectData),fliplr(mean(unitCorrectData,1)+SEM_unitCorrectData)],'r','EdgeColor','none', 'FaceAlpha',0.2);
+%     % SEM_unitIncorrectData= std(unitIncorrectData,0,1,'omitnan')./sqrt(size(unitIncorrectData,1));
+%     % patch([1:size(unitIncorrectData,2),fliplr(1:size(unitIncorrectData,2))], [(mean(unitIncorrectData,1)-SEM_unitIncorrectData),fliplr(mean(unitIncorrectData,1)+SEM_unitIncorrectData)],'b','EdgeColor','none', 'FaceAlpha',0.2);
+% 
+% legend('Correct trials','Incorrect trials','Location','northwest')
+% box off
+% legend boxoff 
+% 
+%     saveas(fig1,fullfile(figpath,fig1.Name),'png')
+%     saveas(fig1,fullfile(figpath,fig1.Name),'fig')
+% 
+% ProneIncorrectIDs = find(xx<1/1.5);
+% % singleunitid = find(max(mean(spikerate_correct(:,find(xx>1.5)),1))); %#ok<FNDSB>
+% unitCorrectData = spikerate_correct(:,ProneIncorrectIDs);
+% unitIncorrectData = spikerate_incorrect(:,ProneIncorrectIDs);
+% 
+% fig2 = figure('name',sprintf('%s-%s-%s-prone incorrect units',ratname,datadate,regionname));
+% set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]); % it will make the figure size to full screen.
+% plot(mean(unitCorrectData,1),'LineWidth',3,'Color','r')
+% hold on
+% plot(mean(unitIncorrectData,1),'LineWidth',3,'Color','b')
+% set(gca, 'FontName', 'Arial', 'FontSize', 50, 'FontWeight', 'bold')
+% ylabel('Spike rate','FontSize',80);
+% xlabel('Unit IDs','FontSize',80)
+% xlim([0,size(unitIncorrectData,2)+1])
+% legend('Correct trials','Incorrect trials','location','northwest')
+% box off
+% legend boxoff 
+% 
+%     saveas(fig2,fullfile(figpath,fig2.Name),'png')
+%     saveas(fig2,fullfile(figpath,fig2.Name),'fig')
+% 
+% 
+% fig3 = figure('name',sprintf('%s-%s-%s-spikerate from each unit during correct vs. incorrect trials',ratname,datadate,regionname));
+% set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]); % it will make the figure size to full screen.
+% plot(spikerate_correct_aver,'LineWidth',3,'Color','r')
+% hold on, plot(spikerate_incorrect_aver,'LineWidth',3,'Color','b')
+% set(gca, 'FontName', 'Arial', 'FontSize', 35, 'FontWeight', 'bold')
+% ylabel('Spike rate','FontSize',80)
+% xlabel('Unit IDs','FontSize',65)
+% legend('Correct trials','Incorrect trials','FontSize',45,'location','northwest')
+% box off
+% legend boxoff 
+% clear spikerate_correct_aver spikerate_incorrect_aver
+% 
+% tempname1 = sprintf('%s.png',fig3.Name);
+% saveas(fig3,fullfile(figpath,tempname1))
+% tempname2 = sprintf('%s.fig',fig3.Name);
+% saveas(fig3,fullfile(figpath,tempname2))
+
+        end
+
+    end
+% end
